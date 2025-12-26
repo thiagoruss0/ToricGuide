@@ -14,6 +14,9 @@ struct ResultsView: View {
 
     @State private var showVectorDetails = false
     @State private var showingIOLComparison = false
+    @State private var showingShareSheet = false
+    @State private var reportURL: URL?
+    @State private var isGeneratingReport = false
 
     var surgicalCase: SurgicalCase? {
         appState.currentCase
@@ -406,19 +409,47 @@ struct ResultsView: View {
                 .cornerRadius(12)
             }
 
-            Button {
-                saveCase()
-            } label: {
-                HStack {
-                    Image(systemName: "square.and.arrow.down")
-                    Text("SALVAR CASO")
-                        .fontWeight(.semibold)
+            HStack(spacing: 12) {
+                Button {
+                    saveCase()
+                } label: {
+                    HStack {
+                        Image(systemName: "square.and.arrow.down")
+                        Text("SALVAR")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(.systemGray5))
+                    .foregroundColor(.primary)
+                    .cornerRadius(12)
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color(.systemGray5))
-                .foregroundColor(.primary)
-                .cornerRadius(12)
+
+                Button {
+                    generateReport()
+                } label: {
+                    HStack {
+                        if isGeneratingReport {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Image(systemName: "doc.text")
+                        }
+                        Text("PDF")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+                .disabled(isGeneratingReport)
+            }
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            if let url = reportURL {
+                ShareSheet(items: [url])
             }
         }
     }
@@ -445,6 +476,49 @@ struct ResultsView: View {
         }
         appState.navigationPath = NavigationPath()
     }
+
+    private func generateReport() {
+        guard let patient = appState.currentPatient,
+              let surgicalCase = appState.currentCase else {
+            return
+        }
+
+        isGeneratingReport = true
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let pdfData = PDFReportGenerator.generateReport(
+                patient: patient,
+                surgicalCase: surgicalCase
+            ) {
+                if let url = PDFReportGenerator.saveReport(pdfData, patient: patient, case_: surgicalCase) {
+                    DispatchQueue.main.async {
+                        self.reportURL = url
+                        self.isGeneratingReport = false
+                        self.showingShareSheet = true
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        self.isGeneratingReport = false
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.isGeneratingReport = false
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Share Sheet
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Vector Row

@@ -3,6 +3,7 @@
 //  ToricGuide
 //
 //  Serviço de persistência de dados
+//  Usa DataPersistenceService para armazenamento robusto
 //
 
 import Foundation
@@ -11,9 +12,14 @@ import SwiftUI
 class PatientStore: ObservableObject {
     @Published var patients: [Patient] = []
     @Published var cases: [SurgicalCase] = []
+    @Published var isLoading = false
+    @Published var lastError: String?
 
-    private let patientsKey = "toricguide_patients"
-    private let casesKey = "toricguide_cases"
+    private let persistence = DataPersistenceService.shared
+
+    // Legacy keys for migration
+    private let legacyPatientsKey = "toricguide_patients"
+    private let legacyCasesKey = "toricguide_cases"
 
     init() {
         loadData()
@@ -21,27 +27,67 @@ class PatientStore: ObservableObject {
 
     // MARK: - Carregar dados
     private func loadData() {
-        if let patientsData = UserDefaults.standard.data(forKey: patientsKey),
-           let decoded = try? JSONDecoder().decode([Patient].self, from: patientsData) {
-            patients = decoded
+        isLoading = true
+
+        do {
+            // Tentar carregar do novo sistema
+            patients = try persistence.loadPatients()
+            cases = try persistence.loadCases()
+
+            // Se vazio, tentar migrar dados legados
+            if patients.isEmpty {
+                migrateLegacyData()
+            }
+
+            lastError = nil
+        } catch {
+            print("[PatientStore] Error loading data: \(error)")
+            lastError = error.localizedDescription
+
+            // Fallback para dados legados
+            migrateLegacyData()
         }
 
-        if let casesData = UserDefaults.standard.data(forKey: casesKey),
+        isLoading = false
+    }
+
+    // MARK: - Migrar dados legados
+    private func migrateLegacyData() {
+        // Migrar pacientes
+        if let patientsData = UserDefaults.standard.data(forKey: legacyPatientsKey),
+           let decoded = try? JSONDecoder().decode([Patient].self, from: patientsData) {
+            patients = decoded
+            try? persistence.savePatients(patients)
+            print("[PatientStore] Migrated \(patients.count) patients from UserDefaults")
+        }
+
+        // Migrar casos
+        if let casesData = UserDefaults.standard.data(forKey: legacyCasesKey),
            let decoded = try? JSONDecoder().decode([SurgicalCase].self, from: casesData) {
             cases = decoded
+            try? persistence.saveCases(cases)
+            print("[PatientStore] Migrated \(cases.count) cases from UserDefaults")
         }
     }
 
     // MARK: - Salvar dados
     private func savePatients() {
-        if let encoded = try? JSONEncoder().encode(patients) {
-            UserDefaults.standard.set(encoded, forKey: patientsKey)
+        do {
+            try persistence.savePatients(patients)
+            lastError = nil
+        } catch {
+            print("[PatientStore] Error saving patients: \(error)")
+            lastError = error.localizedDescription
         }
     }
 
     private func saveCases() {
-        if let encoded = try? JSONEncoder().encode(cases) {
-            UserDefaults.standard.set(encoded, forKey: casesKey)
+        do {
+            try persistence.saveCases(cases)
+            lastError = nil
+        } catch {
+            print("[PatientStore] Error saving cases: \(error)")
+            lastError = error.localizedDescription
         }
     }
 
@@ -116,6 +162,51 @@ class PatientStore: ObservableObject {
     var totalPatients: Int { patients.count }
     var totalCases: Int { cases.count }
     var completedCases: Int { cases.filter { $0.status == .completed }.count }
+
+    // MARK: - Backup e Restauração
+    func createBackup() -> URL? {
+        do {
+            return try persistence.createBackup()
+        } catch {
+            lastError = "Erro ao criar backup: \(error.localizedDescription)"
+            return nil
+        }
+    }
+
+    func listBackups() -> [URL] {
+        persistence.listBackups()
+    }
+
+    // MARK: - Storage Info
+    func getStorageInfo() -> StorageInfo {
+        persistence.getStorageInfo()
+    }
+
+    // MARK: - Clear Data
+    func clearAllData() {
+        do {
+            try persistence.clearAllData()
+            patients = []
+            cases = []
+            lastError = nil
+        } catch {
+            lastError = "Erro ao limpar dados: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Reload
+    func reload() {
+        loadData()
+    }
+
+    // MARK: - Export Case for Report
+    func getCaseWithPatient(_ caseId: UUID) -> (patient: Patient, case_: SurgicalCase)? {
+        guard let surgicalCase = getCase(by: caseId),
+              let patient = getPatient(by: surgicalCase.patientId) else {
+            return nil
+        }
+        return (patient, surgicalCase)
+    }
 }
 
 // MARK: - Preview Helper

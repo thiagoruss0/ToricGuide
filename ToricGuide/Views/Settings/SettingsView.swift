@@ -217,9 +217,14 @@ struct DataManagementView: View {
     @EnvironmentObject var patientStore: PatientStore
     @State private var showingExportSheet = false
     @State private var showingDeleteAlert = false
+    @State private var showingBackupSuccess = false
+    @State private var backupURL: URL?
+    @State private var isCreatingBackup = false
+    @State private var storageInfo: StorageInfo?
 
     var body: some View {
         List {
+            // MARK: - Estatísticas
             Section {
                 HStack {
                     Text("Pacientes")
@@ -245,22 +250,78 @@ struct DataManagementView: View {
                 Text("Estatísticas")
             }
 
+            // MARK: - Armazenamento
+            Section {
+                if let info = storageInfo {
+                    HStack {
+                        Text("Espaço utilizado")
+                        Spacer()
+                        Text(info.formattedSize)
+                            .foregroundColor(.secondary)
+                    }
+
+                    HStack {
+                        Text("Imagens salvas")
+                        Spacer()
+                        Text("\(info.imageCount)")
+                            .foregroundColor(.secondary)
+                    }
+
+                    HStack {
+                        Text("Relatórios PDF")
+                        Spacer()
+                        Text("\(info.reportCount)")
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    HStack {
+                        Text("Carregando...")
+                        Spacer()
+                        ProgressView()
+                    }
+                }
+            } header: {
+                Text("Armazenamento")
+            }
+
+            // MARK: - Backup
             Section {
                 Button {
-                    showingExportSheet = true
+                    createBackup()
                 } label: {
-                    Label("Exportar Dados", systemImage: "square.and.arrow.up")
+                    HStack {
+                        Label("Criar Backup", systemImage: "arrow.down.doc")
+                        Spacer()
+                        if isCreatingBackup {
+                            ProgressView()
+                        }
+                    }
                 }
+                .disabled(isCreatingBackup)
 
-                Button {
-                    // Importar dados
+                NavigationLink {
+                    BackupListView()
                 } label: {
-                    Label("Importar Dados", systemImage: "square.and.arrow.down")
+                    Label("Ver Backups", systemImage: "folder")
                 }
             } header: {
                 Text("Backup")
+            } footer: {
+                Text("Backups são salvos localmente no dispositivo")
             }
 
+            // MARK: - Relatórios
+            Section {
+                NavigationLink {
+                    ReportsListView()
+                } label: {
+                    Label("Relatórios Gerados", systemImage: "doc.text")
+                }
+            } header: {
+                Text("Relatórios PDF")
+            }
+
+            // MARK: - Limpar Dados
             Section {
                 Button(role: .destructive) {
                     showingDeleteAlert = true
@@ -268,17 +329,166 @@ struct DataManagementView: View {
                     Label("Apagar Todos os Dados", systemImage: "trash")
                         .foregroundColor(.red)
                 }
+            } footer: {
+                Text("Esta ação removerá todos os pacientes, casos e imagens")
             }
         }
         .navigationTitle("Gerenciar Dados")
+        .onAppear {
+            loadStorageInfo()
+        }
         .alert("Apagar todos os dados?", isPresented: $showingDeleteAlert) {
             Button("Cancelar", role: .cancel) {}
             Button("Apagar", role: .destructive) {
-                // Apagar dados
+                patientStore.clearAllData()
+                loadStorageInfo()
             }
         } message: {
-            Text("Esta ação não pode ser desfeita.")
+            Text("Esta ação não pode ser desfeita. Todos os pacientes, casos e imagens serão removidos permanentemente.")
         }
+        .alert("Backup criado", isPresented: $showingBackupSuccess) {
+            Button("OK") {}
+        } message: {
+            Text("O backup foi salvo com sucesso")
+        }
+    }
+
+    private func loadStorageInfo() {
+        storageInfo = patientStore.getStorageInfo()
+    }
+
+    private func createBackup() {
+        isCreatingBackup = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            let url = patientStore.createBackup()
+            DispatchQueue.main.async {
+                isCreatingBackup = false
+                backupURL = url
+                if url != nil {
+                    showingBackupSuccess = true
+                }
+                loadStorageInfo()
+            }
+        }
+    }
+}
+
+// MARK: - Lista de Backups
+struct BackupListView: View {
+    @EnvironmentObject var patientStore: PatientStore
+    @State private var backups: [URL] = []
+
+    var body: some View {
+        List {
+            if backups.isEmpty {
+                Text("Nenhum backup encontrado")
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(backups, id: \.absoluteString) { url in
+                    HStack {
+                        Image(systemName: "folder.fill")
+                            .foregroundColor(.blue)
+
+                        VStack(alignment: .leading) {
+                            Text(url.lastPathComponent)
+                                .font(.subheadline)
+
+                            if let date = getCreationDate(for: url) {
+                                Text(formatDate(date))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Backups")
+        .onAppear {
+            backups = patientStore.listBackups()
+        }
+    }
+
+    private func getCreationDate(for url: URL) -> Date? {
+        try? url.resourceValues(forKeys: [.creationDateKey]).creationDate
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd/MM/yyyy HH:mm"
+        return formatter.string(from: date)
+    }
+}
+
+// MARK: - Lista de Relatórios
+struct ReportsListView: View {
+    @State private var reports: [URL] = []
+    @State private var selectedReport: URL?
+    @State private var showingShareSheet = false
+
+    var body: some View {
+        List {
+            if reports.isEmpty {
+                Text("Nenhum relatório gerado")
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(reports, id: \.absoluteString) { url in
+                    Button {
+                        selectedReport = url
+                        showingShareSheet = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.text.fill")
+                                .foregroundColor(.red)
+
+                            VStack(alignment: .leading) {
+                                Text(url.lastPathComponent)
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+
+                                if let size = getFileSize(for: url) {
+                                    Text(size)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Relatórios")
+        .onAppear {
+            loadReports()
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            if let url = selectedReport {
+                ShareSheet(items: [url])
+            }
+        }
+    }
+
+    private func loadReports() {
+        let reportsDir = DataPersistenceService.shared.getReportsDirectory()
+        reports = (try? FileManager.default.contentsOfDirectory(
+            at: reportsDir,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: .skipsHiddenFiles
+        ).filter { $0.pathExtension == "pdf" }) ?? []
+    }
+
+    private func getFileSize(for url: URL) -> String? {
+        guard let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize else {
+            return nil
+        }
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(size))
     }
 }
 
