@@ -15,12 +15,10 @@ struct SurgicalGuideView: View {
     @Environment(\.dismiss) private var dismiss
 
     @StateObject private var cameraService = CameraService()
-    @StateObject private var visionService = EyeTrackingService()
+    @StateObject private var trackingService = RealTimeTrackingService()
 
     // Estado do guia
-    @State private var detectedCyclotorsion: Double = 0
     @State private var correctedAxis: Double = 0
-    @State private var isAligned = false
     @State private var axisLocked = false
     @State private var manualAdjustment: Double = 0
 
@@ -29,13 +27,32 @@ struct SurgicalGuideView: View {
     @State private var isRecording = false
     @State private var showControls = true
     @State private var isTVMode = false // MODO TV para visualização em tela grande
+    @State private var showTrackingInfo = false // Mostrar info de tracking
 
     var targetAxis: Double {
         appState.currentCase?.calculatedAxis ?? 0
     }
 
+    var detectedCyclotorsion: Double {
+        trackingService.detectedCyclotorsion
+    }
+
+    var isAligned: Bool {
+        trackingService.isAligned || abs(displayAxis - targetAxis) < 5
+    }
+
     var displayAxis: Double {
         axisLocked ? correctedAxis : (targetAxis + manualAdjustment - detectedCyclotorsion)
+    }
+
+    var trackingStatusColor: Color {
+        switch trackingService.trackingStatus {
+        case .tracking: return .green
+        case .searching: return .orange
+        case .error: return .red
+        case .ready: return .blue
+        default: return .gray
+        }
     }
 
     var body: some View {
@@ -254,14 +271,41 @@ struct SurgicalGuideView: View {
 
             Spacer()
 
-            // Ciclotorção (canto direito)
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("CICLOTORÇÃO")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
-                Text(String(format: "%+.1f°", detectedCyclotorsion))
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(abs(detectedCyclotorsion) < 3 ? .green : .orange)
+            // Ciclotorção e Tracking (canto direito)
+            VStack(alignment: .trailing, spacing: 8) {
+                // Status de tracking
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(trackingStatusColor)
+                        .frame(width: 12, height: 12)
+                    Text(trackingService.trackingStatus.description.uppercased())
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(trackingStatusColor)
+                    if trackingService.matchedVessels > 0 {
+                        Text("(\(trackingService.matchedVessels))")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                }
+
+                // Ciclotorção
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("CICLOTORÇÃO")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                    Text(String(format: "%+.1f°", detectedCyclotorsion))
+                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                        .foregroundColor(abs(detectedCyclotorsion) < 3 ? .green : .orange)
+                }
+
+                // Barra de confiança
+                HStack(spacing: 3) {
+                    ForEach(0..<5) { i in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Double(i) / 5.0 < trackingService.trackingConfidence ? Color.green : Color.gray.opacity(0.3))
+                            .frame(width: 16, height: 6)
+                    }
+                }
             }
             .padding(20)
             .background(
@@ -587,6 +631,30 @@ struct SurgicalGuideView: View {
 
             Divider().background(Color.white.opacity(0.3))
 
+            // Status de Tracking
+            VStack(spacing: 6) {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(trackingStatusColor)
+                        .frame(width: 8, height: 8)
+                    Text("TRACKING")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.5))
+                }
+
+                Text(trackingService.trackingStatus.description)
+                    .font(.caption)
+                    .foregroundColor(trackingStatusColor)
+
+                if trackingService.matchedVessels > 0 {
+                    Text("\(trackingService.matchedVessels) vasos")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.4))
+                }
+            }
+
+            Divider().background(Color.white.opacity(0.3))
+
             // Ciclotorção
             VStack(spacing: 6) {
                 Text("CICLOTORÇÃO")
@@ -597,6 +665,18 @@ struct SurgicalGuideView: View {
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(abs(detectedCyclotorsion) < 3 ? .green : .orange)
+
+                // Confiança do tracking
+                if trackingService.trackingConfidence > 0 {
+                    HStack(spacing: 2) {
+                        ForEach(0..<5) { i in
+                            Rectangle()
+                                .fill(Double(i) / 5.0 < trackingService.trackingConfidence ? Color.green : Color.gray.opacity(0.3))
+                                .frame(width: 12, height: 4)
+                                .cornerRadius(2)
+                        }
+                    }
+                }
             }
 
             Divider().background(Color.white.opacity(0.3))
@@ -995,23 +1075,40 @@ struct SurgicalGuideView: View {
         cameraService.setupCamera(useFrontCamera: false)
         cameraService.startSession()
 
-        // Iniciar rastreamento
-        visionService.startTracking()
+        // Configurar serviço de tracking com referência do caso atual
+        setupTrackingReference()
 
-        // Detectar ciclotorção
-        simulateCyclotorsionDetection()
-        updateAlignment()
+        // Iniciar rastreamento
+        trackingService.startTracking()
+    }
+
+    private func setupTrackingReference() {
+        guard let currentCase = appState.currentCase,
+              let landmarks = currentCase.referenceLandmarks else {
+            // Se não houver landmarks, usar tracking simulado
+            trackingService.startSimulatedTracking(baseAxis: targetAxis)
+            return
+        }
+
+        // Recuperar imagem de referência
+        var referenceImage: UIImage?
+        if let imageData = currentCase.referenceImageData {
+            referenceImage = UIImage(data: imageData)
+        }
+
+        // Configurar referência para tracking
+        trackingService.setupReference(
+            landmarks: landmarks,
+            image: referenceImage,
+            targetAxis: targetAxis,
+            eye: currentCase.eye
+        )
     }
 
     private func stopSurgicalMode() {
         UIApplication.shared.isIdleTimerDisabled = false
         cameraService.stopSession()
-        visionService.stopTracking()
-    }
-
-    private func simulateCyclotorsionDetection() {
-        detectedCyclotorsion = Double.random(in: -5...5)
-        updateAlignment()
+        trackingService.stopTracking()
     }
 
     private func adjustAxis(by degrees: Double) {
@@ -1022,15 +1119,14 @@ struct SurgicalGuideView: View {
 
         withAnimation(.easeInOut(duration: 0.15)) {
             manualAdjustment += degrees
-            updateAlignment()
         }
 
         HapticFeedback.light()
     }
 
-    private func updateAlignment() {
-        let deviation = abs(displayAxis - targetAxis)
-        isAligned = deviation < 5
+    private func adjustCyclotorsion(by degrees: Double) {
+        trackingService.adjustCyclotorsion(by: degrees)
+        HapticFeedback.light()
     }
 
     private func captureSnapshot() {
@@ -1342,20 +1438,6 @@ extension Double {
         var angle = self.truncatingRemainder(dividingBy: 360)
         if angle < 0 { angle += 360 }
         return angle
-    }
-}
-
-// MARK: - Eye Tracking Service
-class EyeTrackingService: ObservableObject {
-    @Published var isTracking = false
-    @Published var detectedRotation: Double = 0
-
-    func startTracking() {
-        isTracking = true
-    }
-
-    func stopTracking() {
-        isTracking = false
     }
 }
 
