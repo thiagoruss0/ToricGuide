@@ -26,8 +26,13 @@ struct BiometricDataView: View {
     @State private var incisionSize: Double = 2.4
     @State private var siaValue: String = "0.30"
 
+    // Configuração avançada
+    @State private var includePosteriorAstig: Bool = true
+    @State private var showAdvancedOptions: Bool = false
+
     // UI State
     @State private var showingIOLPicker = false
+    @State private var showingIOLComparison = false
     @FocusState private var focusedField: Field?
 
     enum Field {
@@ -67,8 +72,14 @@ struct BiometricDataView: View {
                 // Incisão
                 incisionSection
 
+                // Opções avançadas
+                advancedOptionsSection
+
                 // Botão calcular
                 calculateButton
+
+                // Botão comparar LIOs
+                compareIOLsButton
             }
             .padding()
         }
@@ -376,6 +387,91 @@ struct BiometricDataView: View {
         }
     }
 
+    // MARK: - Advanced Options Section
+    private var advancedOptionsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation {
+                    showAdvancedOptions.toggle()
+                }
+            } label: {
+                HStack {
+                    Text("OPÇÕES AVANÇADAS")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+
+                    Image(systemName: showAdvancedOptions ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            if showAdvancedOptions {
+                VStack(spacing: 12) {
+                    // Toggle para astigmatismo posterior
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Incluir Astigmatismo Posterior")
+                                .foregroundColor(.primary)
+
+                            Text("Baylor Nomogram")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        Toggle("", isOn: $includePosteriorAstig)
+                            .labelsHidden()
+                    }
+
+                    if includePosteriorAstig {
+                        // Mostrar estimativa
+                        let keratometry = Keratometry(
+                            k1Power: Double(k1Power) ?? 43,
+                            k1Axis: Double(k1Axis) ?? 180,
+                            k2Power: Double(k2Power) ?? 44,
+                            k2Axis: Double(k2Axis) ?? 90
+                        )
+
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.blue)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Estimativa: \(posteriorEstimate(for: keratometry.astigmatismType))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+
+                                Text("Tipo: \(keratometry.astigmatismType.rawValue)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(8)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                    }
+                }
+                .padding()
+                .background(Color(.systemBackground))
+                .cornerRadius(12)
+                .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
+            }
+        }
+    }
+
+    private func posteriorEstimate(for type: AstigmatismType) -> String {
+        switch type {
+        case .withTheRule: return "-0.50D (reduz TCA)"
+        case .againstTheRule: return "+0.25D (aumenta TCA)"
+        case .oblique: return "-0.13D"
+        }
+    }
+
     // MARK: - Calculate Button
     private var calculateButton: some View {
         Button {
@@ -383,7 +479,7 @@ struct BiometricDataView: View {
         } label: {
             HStack {
                 Image(systemName: "function")
-                Text("CALCULAR")
+                Text("CALCULAR EIXO")
                     .fontWeight(.semibold)
             }
             .frame(maxWidth: .infinity)
@@ -391,6 +487,30 @@ struct BiometricDataView: View {
             .background(Color.blue)
             .foregroundColor(.white)
             .cornerRadius(12)
+        }
+    }
+
+    // MARK: - Compare IOLs Button
+    private var compareIOLsButton: some View {
+        Button {
+            showingIOLComparison = true
+        } label: {
+            HStack {
+                Image(systemName: "list.bullet.rectangle")
+                Text("Comparar LIOs")
+                    .fontWeight(.medium)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Color(.systemGray5))
+            .foregroundColor(.primary)
+            .cornerRadius(12)
+        }
+        .sheet(isPresented: $showingIOLComparison) {
+            IOLComparisonView(
+                targetAstigmatism: totalAstigmatism,
+                selectedManufacturer: selectedManufacturer
+            )
         }
     }
 
@@ -405,17 +525,29 @@ struct BiometricDataView: View {
         )
 
         // Criar dados de incisão
+        let eye = appState.currentCase?.eye ?? .right
         let incision = IncisionData(
             location: incisionLocation,
-            axis: incisionLocation.typicalAxis(for: appState.currentCase?.eye ?? .right),
+            axis: incisionLocation.typicalAxis(for: eye),
             size: incisionSize,
             surgicallyInducedAstigmatism: Double(siaValue) ?? 0.30
         )
 
         // Encontrar melhor LIO
-        let selectedIOL = IOLCatalog.findBestMatch(
+        guard let selectedIOL = IOLCatalog.findBestMatch(
             targetCornealCylinder: totalAstigmatism,
             manufacturer: selectedManufacturer
+        ) else {
+            return
+        }
+
+        // Calcular análise vetorial completa
+        let analysis = ToricCalculator.calculateFullAnalysis(
+            keratometry: keratometry,
+            incision: incision,
+            iol: selectedIOL,
+            eye: eye,
+            includePostAstig: includePosteriorAstig
         )
 
         // Atualizar caso
@@ -423,16 +555,14 @@ struct BiometricDataView: View {
             currentCase.keratometry = keratometry
             currentCase.incision = incision
             currentCase.selectedIOL = selectedIOL
+            currentCase.includesPosteriorAstigmatism = includePosteriorAstig
 
-            // Calcular eixo de implantação
-            // Fórmula simplificada: eixo = eixo do astigmatismo mais curvo (K2)
-            // Em casos reais, usaria vetores e SIA
-            currentCase.calculatedAxis = keratometry.k2Axis
+            // Salvar análise completa
+            currentCase.toricAnalysis = StoredToricAnalysis(from: analysis)
 
-            // Calcular astigmatismo residual
-            if let iol = selectedIOL {
-                currentCase.residualAstigmatism = abs(totalAstigmatism - iol.cylinderPowerAtCornea)
-            }
+            // Manter campos legados para compatibilidade
+            currentCase.calculatedAxis = analysis.implantationAxis
+            currentCase.residualAstigmatism = analysis.residualAstigmatism.magnitude
 
             currentCase.status = .calculated
             appState.currentCase = currentCase

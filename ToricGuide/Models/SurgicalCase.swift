@@ -28,9 +28,15 @@ struct SurgicalCase: Identifiable, Codable {
     // LIO selecionada
     var selectedIOL: ToricIOL?
 
-    // Cálculo do eixo
+    // Cálculo do eixo (legado)
     var calculatedAxis: Double? // Eixo calculado em graus
     var residualAstigmatism: Double? // Astigmatismo residual previsto
+
+    // Análise vetorial completa
+    var toricAnalysis: StoredToricAnalysis?
+
+    // Configuração do cálculo
+    var includesPosteriorAstigmatism: Bool = true
 
     // Dados intraoperatórios
     var intraopCyclotorsion: Double? // Ciclotorção detectada
@@ -152,5 +158,97 @@ struct CGPointCodable: Codable {
     init(x: CGFloat, y: CGFloat) {
         self.x = x
         self.y = y
+    }
+}
+
+// MARK: - Análise Tórica Armazenável
+/// Versão Codable da análise vetorial para persistência
+struct StoredToricAnalysis: Codable {
+    // Vetores de astigmatismo
+    var anteriorMagnitude: Double
+    var anteriorAxis: Double
+    var posteriorMagnitude: Double
+    var posteriorAxis: Double
+    var tcaMagnitude: Double
+    var tcaAxis: Double
+    var siaMagnitude: Double
+    var siaAxis: Double
+    var postSIAMagnitude: Double
+    var postSIAAxis: Double
+    var residualMagnitude: Double
+    var residualAxis: Double
+
+    // Eixo de implantação
+    var implantationAxis: Double
+
+    // Tipo de correção
+    var correctionTypeRaw: String
+
+    // Porcentagem de correção
+    var correctionPercentage: Double
+
+    // Eye
+    var eyeRaw: String
+
+    // Construtor a partir de FullToricAnalysis
+    init(from analysis: FullToricAnalysis) {
+        self.anteriorMagnitude = analysis.anteriorAstigmatism.magnitude
+        self.anteriorAxis = analysis.anteriorAstigmatism.axis
+        self.posteriorMagnitude = analysis.posteriorAstigmatism.magnitude
+        self.posteriorAxis = analysis.posteriorAstigmatism.axis
+        self.tcaMagnitude = analysis.totalCornealAstigmatism.magnitude
+        self.tcaAxis = analysis.totalCornealAstigmatism.axis
+        self.siaMagnitude = analysis.surgicallyInducedAstigmatism.magnitude
+        self.siaAxis = analysis.surgicallyInducedAstigmatism.axis
+        self.postSIAMagnitude = analysis.postSIAAstigmatism.magnitude
+        self.postSIAAxis = analysis.postSIAAstigmatism.axis
+        self.residualMagnitude = analysis.residualAstigmatism.magnitude
+        self.residualAxis = analysis.residualAstigmatism.axis
+        self.implantationAxis = analysis.implantationAxis
+        self.correctionTypeRaw = analysis.correctionType.rawValue
+        self.correctionPercentage = analysis.correctionPercentage
+        self.eyeRaw = analysis.eye.rawValue
+    }
+
+    // Propriedades formatadas
+    var anteriorFormatted: String {
+        String(format: "%.2fD @ %.0f°", anteriorMagnitude, anteriorAxis)
+    }
+
+    var posteriorFormatted: String {
+        String(format: "%.2fD @ %.0f°", posteriorMagnitude, posteriorAxis)
+    }
+
+    var tcaFormatted: String {
+        String(format: "%.2fD @ %.0f°", tcaMagnitude, tcaAxis)
+    }
+
+    var siaFormatted: String {
+        String(format: "%.2fD @ %.0f°", siaMagnitude, siaAxis)
+    }
+
+    var postSIAFormatted: String {
+        String(format: "%.2fD @ %.0f°", postSIAMagnitude, postSIAAxis)
+    }
+
+    var residualFormatted: String {
+        String(format: "%.2fD @ %.0f°", residualMagnitude, residualAxis)
+    }
+
+    var correctionType: String {
+        switch correctionTypeRaw {
+        case "undercorrection": return "Subcorreção"
+        case "exact": return "Correção Exata"
+        case "overcorrection": return "Hipercorreção"
+        default: return correctionTypeRaw
+        }
+    }
+
+    var isOvercorrection: Bool {
+        correctionTypeRaw == "overcorrection"
+    }
+
+    var isUndercorrection: Bool {
+        correctionTypeRaw == "undercorrection"
     }
 }

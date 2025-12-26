@@ -396,10 +396,10 @@ struct AstigmatismVector {
 }
 
 /// Tipo de correção
-enum CorrectionType {
-    case undercorrection  // LIO menor que necessário
-    case exact            // Correção exata
-    case overcorrection   // LIO maior que necessário (causa flip de eixo)
+enum CorrectionType: String {
+    case undercorrection = "undercorrection"  // LIO menor que necessário
+    case exact = "exact"                      // Correção exata
+    case overcorrection = "overcorrection"    // LIO maior que necessário (causa flip de eixo)
 
     var description: String {
         switch self {
