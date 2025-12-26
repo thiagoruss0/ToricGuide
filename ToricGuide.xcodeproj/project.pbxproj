@@ -1,0 +1,727 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		/* App */
+		A10001 /* ToricGuideApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001; };
+		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002; };
+
+		/* Models */
+		A20001 /* Keratometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20001; };
+		A20002 /* Patient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20002; };
+		A20003 /* SurgicalCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20003; };
+		A20004 /* ToricIOL.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20004; };
+
+		/* Services - Calculation */
+		A30001 /* ToricCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30001; };
+
+		/* Services - Calibration */
+		A30010 /* MicroscopeCalibrationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30010; };
+
+		/* Services - Camera */
+		A30101 /* CameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30101; };
+		A30102 /* MotionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30102; };
+
+		/* Services - Reports */
+		A30201 /* PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30201; };
+
+		/* Services - Storage */
+		A30301 /* DataPersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30301; };
+		A30302 /* PatientStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30302; };
+
+		/* Services - Vision */
+		A30401 /* EyeDetectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30401; };
+		A30402 /* LandmarkMatchingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30402; };
+		A30403 /* LimbalVesselDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30403; };
+		A30404 /* RealTimeTrackingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30404; };
+
+		/* Utils */
+		A40001 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40001; };
+		A40002 /* OrientationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40002; };
+
+		/* Views - BiometricData */
+		A50001 /* BiometricDataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50001; };
+		A50002 /* IOLComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50002; };
+
+		/* Views - Home */
+		A50101 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50101; };
+		A50102 /* SavedCasesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50102; };
+
+		/* Views - PatientRegistration */
+		A50201 /* PatientRegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50201; };
+
+		/* Views - ReferenceCapture */
+		A50301 /* MicroRecCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50301; };
+		A50302 /* ReferenceCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50302; };
+		A50303 /* ReferenceConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50303; };
+
+		/* Views - Results */
+		A50401 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50401; };
+
+		/* Views - Settings */
+		A50501 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50501; };
+
+		/* Views - SurgicalGuide */
+		A50601 /* SurgicalGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50601; };
+
+		/* Assets */
+		A60001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B60001; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		/* Product */
+		C00001 /* ToricGuide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ToricGuide.app; sourceTree = BUILT_PRODUCTS_DIR; };
+
+		/* App */
+		B10001 /* ToricGuideApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToricGuideApp.swift; sourceTree = "<group>"; };
+		B10002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+
+		/* Models */
+		B20001 /* Keratometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keratometry.swift; sourceTree = "<group>"; };
+		B20002 /* Patient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Patient.swift; sourceTree = "<group>"; };
+		B20003 /* SurgicalCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurgicalCase.swift; sourceTree = "<group>"; };
+		B20004 /* ToricIOL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToricIOL.swift; sourceTree = "<group>"; };
+
+		/* Services - Calculation */
+		B30001 /* ToricCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToricCalculator.swift; sourceTree = "<group>"; };
+
+		/* Services - Calibration */
+		B30010 /* MicroscopeCalibrationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicroscopeCalibrationService.swift; sourceTree = "<group>"; };
+
+		/* Services - Camera */
+		B30101 /* CameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraService.swift; sourceTree = "<group>"; };
+		B30102 /* MotionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionService.swift; sourceTree = "<group>"; };
+
+		/* Services - Reports */
+		B30201 /* PDFReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReportGenerator.swift; sourceTree = "<group>"; };
+
+		/* Services - Storage */
+		B30301 /* DataPersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPersistenceService.swift; sourceTree = "<group>"; };
+		B30302 /* PatientStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientStore.swift; sourceTree = "<group>"; };
+
+		/* Services - Vision */
+		B30401 /* EyeDetectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EyeDetectionService.swift; sourceTree = "<group>"; };
+		B30402 /* LandmarkMatchingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkMatchingService.swift; sourceTree = "<group>"; };
+		B30403 /* LimbalVesselDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimbalVesselDetector.swift; sourceTree = "<group>"; };
+		B30404 /* RealTimeTrackingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealTimeTrackingService.swift; sourceTree = "<group>"; };
+
+		/* Utils */
+		B40001 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		B40002 /* OrientationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationManager.swift; sourceTree = "<group>"; };
+
+		/* Views - BiometricData */
+		B50001 /* BiometricDataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricDataView.swift; sourceTree = "<group>"; };
+		B50002 /* IOLComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOLComparisonView.swift; sourceTree = "<group>"; };
+
+		/* Views - Home */
+		B50101 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		B50102 /* SavedCasesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedCasesView.swift; sourceTree = "<group>"; };
+
+		/* Views - PatientRegistration */
+		B50201 /* PatientRegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientRegistrationView.swift; sourceTree = "<group>"; };
+
+		/* Views - ReferenceCapture */
+		B50301 /* MicroRecCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicroRecCaptureView.swift; sourceTree = "<group>"; };
+		B50302 /* ReferenceCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceCaptureView.swift; sourceTree = "<group>"; };
+		B50303 /* ReferenceConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceConfirmationView.swift; sourceTree = "<group>"; };
+
+		/* Views - Results */
+		B50401 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
+
+		/* Views - Settings */
+		B50501 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+
+		/* Views - SurgicalGuide */
+		B50601 /* SurgicalGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurgicalGuideView.swift; sourceTree = "<group>"; };
+
+		/* Assets */
+		B60001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+
+		/* Info.plist */
+		B60002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D00001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		/* Root */
+		E00000 = {
+			isa = PBXGroup;
+			children = (
+				E10000 /* ToricGuide */,
+				E90000 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+
+		/* Products */
+		E90000 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C00001 /* ToricGuide.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+
+		/* ToricGuide */
+		E10000 /* ToricGuide */ = {
+			isa = PBXGroup;
+			children = (
+				E11000 /* App */,
+				E12000 /* Models */,
+				E13000 /* Services */,
+				E14000 /* Utils */,
+				E15000 /* Views */,
+				B60001 /* Assets.xcassets */,
+				B60002 /* Info.plist */,
+			);
+			path = ToricGuide;
+			sourceTree = "<group>";
+		};
+
+		/* App */
+		E11000 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B10001 /* ToricGuideApp.swift */,
+				B10002 /* ContentView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+
+		/* Models */
+		E12000 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B20001 /* Keratometry.swift */,
+				B20002 /* Patient.swift */,
+				B20003 /* SurgicalCase.swift */,
+				B20004 /* ToricIOL.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+
+		/* Services */
+		E13000 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				E13100 /* Calculation */,
+				E13150 /* Calibration */,
+				E13200 /* Camera */,
+				E13300 /* Reports */,
+				E13400 /* Storage */,
+				E13500 /* Vision */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+
+		/* Services - Calculation */
+		E13100 /* Calculation */ = {
+			isa = PBXGroup;
+			children = (
+				B30001 /* ToricCalculator.swift */,
+			);
+			path = Calculation;
+			sourceTree = "<group>";
+		};
+
+		/* Services - Calibration */
+		E13150 /* Calibration */ = {
+			isa = PBXGroup;
+			children = (
+				B30010 /* MicroscopeCalibrationService.swift */,
+			);
+			path = Calibration;
+			sourceTree = "<group>";
+		};
+
+		/* Services - Camera */
+		E13200 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				B30101 /* CameraService.swift */,
+				B30102 /* MotionService.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+
+		/* Services - Reports */
+		E13300 /* Reports */ = {
+			isa = PBXGroup;
+			children = (
+				B30201 /* PDFReportGenerator.swift */,
+			);
+			path = Reports;
+			sourceTree = "<group>";
+		};
+
+		/* Services - Storage */
+		E13400 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				B30301 /* DataPersistenceService.swift */,
+				B30302 /* PatientStore.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+
+		/* Services - Vision */
+		E13500 /* Vision */ = {
+			isa = PBXGroup;
+			children = (
+				B30401 /* EyeDetectionService.swift */,
+				B30402 /* LandmarkMatchingService.swift */,
+				B30403 /* LimbalVesselDetector.swift */,
+				B30404 /* RealTimeTrackingService.swift */,
+			);
+			path = Vision;
+			sourceTree = "<group>";
+		};
+
+		/* Utils */
+		E14000 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				B40001 /* Extensions.swift */,
+				B40002 /* OrientationManager.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+
+		/* Views */
+		E15000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				E15100 /* BiometricData */,
+				E15200 /* Home */,
+				E15300 /* PatientRegistration */,
+				E15400 /* ReferenceCapture */,
+				E15500 /* Results */,
+				E15600 /* Settings */,
+				E15700 /* SurgicalGuide */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+
+		/* Views - BiometricData */
+		E15100 /* BiometricData */ = {
+			isa = PBXGroup;
+			children = (
+				B50001 /* BiometricDataView.swift */,
+				B50002 /* IOLComparisonView.swift */,
+			);
+			path = BiometricData;
+			sourceTree = "<group>";
+		};
+
+		/* Views - Home */
+		E15200 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				B50101 /* HomeView.swift */,
+				B50102 /* SavedCasesView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+
+		/* Views - PatientRegistration */
+		E15300 /* PatientRegistration */ = {
+			isa = PBXGroup;
+			children = (
+				B50201 /* PatientRegistrationView.swift */,
+			);
+			path = PatientRegistration;
+			sourceTree = "<group>";
+		};
+
+		/* Views - ReferenceCapture */
+		E15400 /* ReferenceCapture */ = {
+			isa = PBXGroup;
+			children = (
+				B50301 /* MicroRecCaptureView.swift */,
+				B50302 /* ReferenceCaptureView.swift */,
+				B50303 /* ReferenceConfirmationView.swift */,
+			);
+			path = ReferenceCapture;
+			sourceTree = "<group>";
+		};
+
+		/* Views - Results */
+		E15500 /* Results */ = {
+			isa = PBXGroup;
+			children = (
+				B50401 /* ResultsView.swift */,
+			);
+			path = Results;
+			sourceTree = "<group>";
+		};
+
+		/* Views - Settings */
+		E15600 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				B50501 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+
+		/* Views - SurgicalGuide */
+		E15700 /* SurgicalGuide */ = {
+			isa = PBXGroup;
+			children = (
+				B50601 /* SurgicalGuideView.swift */,
+			);
+			path = SurgicalGuide;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F00001 /* ToricGuide */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10001;
+			buildPhases = (
+				F20001 /* Sources */,
+				D00001 /* Frameworks */,
+				F30001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ToricGuide;
+			productName = ToricGuide;
+			productReference = C00001 /* ToricGuide.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F40001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					F00001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = F50001;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = "pt-BR";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				"pt-BR",
+			);
+			mainGroup = E00000;
+			productRefGroup = E90000 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F00001 /* ToricGuide */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F30001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A60001 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F20001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10001 /* ToricGuideApp.swift in Sources */,
+				A10002 /* ContentView.swift in Sources */,
+				A20001 /* Keratometry.swift in Sources */,
+				A20002 /* Patient.swift in Sources */,
+				A20003 /* SurgicalCase.swift in Sources */,
+				A20004 /* ToricIOL.swift in Sources */,
+				A30001 /* ToricCalculator.swift in Sources */,
+				A30010 /* MicroscopeCalibrationService.swift in Sources */,
+				A30101 /* CameraService.swift in Sources */,
+				A30102 /* MotionService.swift in Sources */,
+				A30201 /* PDFReportGenerator.swift in Sources */,
+				A30301 /* DataPersistenceService.swift in Sources */,
+				A30302 /* PatientStore.swift in Sources */,
+				A30401 /* EyeDetectionService.swift in Sources */,
+				A30402 /* LandmarkMatchingService.swift in Sources */,
+				A30403 /* LimbalVesselDetector.swift in Sources */,
+				A30404 /* RealTimeTrackingService.swift in Sources */,
+				A40001 /* Extensions.swift in Sources */,
+				A40002 /* OrientationManager.swift in Sources */,
+				A50001 /* BiometricDataView.swift in Sources */,
+				A50002 /* IOLComparisonView.swift in Sources */,
+				A50101 /* HomeView.swift in Sources */,
+				A50102 /* SavedCasesView.swift in Sources */,
+				A50201 /* PatientRegistrationView.swift in Sources */,
+				A50301 /* MicroRecCaptureView.swift in Sources */,
+				A50302 /* ReferenceCaptureView.swift in Sources */,
+				A50303 /* ReferenceConfirmationView.swift in Sources */,
+				A50401 /* ResultsView.swift in Sources */,
+				A50501 /* SettingsView.swift in Sources */,
+				A50601 /* SurgicalGuideView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		/* Debug - Project */
+		G10001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+
+		/* Release - Project */
+		G10002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+
+		/* Debug - Target */
+		G20001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ToricGuide/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ToricGuide;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
+				INFOPLIST_KEY_NSCameraUsageDescription = "ToricGuide precisa acessar a câmera para capturar imagens de referência do olho e guiar o posicionamento da lente tórica durante a cirurgia.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cedoa.ToricGuide;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+
+		/* Release - Target */
+		G20002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ToricGuide/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ToricGuide;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
+				INFOPLIST_KEY_NSCameraUsageDescription = "ToricGuide precisa acessar a câmera para capturar imagens de referência do olho e guiar o posicionamento da lente tórica durante a cirurgia.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cedoa.ToricGuide;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		/* Project configurations */
+		F50001 /* Build configuration list for PBXProject "ToricGuide" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G10001 /* Debug */,
+				G10002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+
+		/* Target configurations */
+		F10001 /* Build configuration list for PBXNativeTarget "ToricGuide" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G20001 /* Debug */,
+				G20002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F40001 /* Project object */;
+}
