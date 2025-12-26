@@ -4,6 +4,7 @@
 //
 //  Tela de guia cirúrgico intraoperatório
 //  OTIMIZADA PARA LANDSCAPE - iPhone acoplado ao MicroRec horizontalmente
+//  MODO TV - Para visualização em tela grande durante cirurgia
 //
 
 import SwiftUI
@@ -27,6 +28,7 @@ struct SurgicalGuideView: View {
     @State private var showingCompletionAlert = false
     @State private var isRecording = false
     @State private var showControls = true
+    @State private var isTVMode = false // MODO TV para visualização em tela grande
 
     var targetAxis: Double {
         appState.currentCase?.calculatedAxis ?? 0
@@ -48,7 +50,10 @@ struct SurgicalGuideView: View {
                 CameraPreviewView(cameraService: cameraService)
                     .ignoresSafeArea()
 
-                if isLandscape {
+                if isTVMode {
+                    // MODO TV - Overlay maximizado para visualização em TV
+                    tvModeLayout(geometry: geometry)
+                } else if isLandscape {
                     // LAYOUT LANDSCAPE - Otimizado para MicroRec
                     landscapeLayout(geometry: geometry)
                 } else {
@@ -133,6 +138,396 @@ struct SurgicalGuideView: View {
                     adjustmentControlsCompact
                 }
             }
+        }
+    }
+
+    // MARK: - TV Mode Layout (Maximizado para visualização em TV)
+    private func tvModeLayout(geometry: GeometryProxy) -> some View {
+        ZStack {
+            // Overlay maximizado ocupando toda a tela
+            tvModeSurgicalOverlay(geometry: geometry)
+
+            // HUD mínimo com informações essenciais (alto contraste)
+            VStack {
+                // Barra superior com eixos (fontes grandes)
+                if showControls {
+                    tvModeTopBar
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                Spacer()
+
+                // Status de alinhamento grande na parte inferior
+                if showControls {
+                    tvModeBottomBar
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+
+            // Botões de controle nos cantos (quando visíveis)
+            if showControls {
+                tvModeControlButtons
+            }
+        }
+    }
+
+    // MARK: - TV Mode Top Bar
+    private var tvModeTopBar: some View {
+        HStack(spacing: 0) {
+            // Info do paciente (canto esquerdo)
+            HStack(spacing: 12) {
+                Text(appState.currentPatient?.name ?? "")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+
+                Text(appState.currentCase?.eye.rawValue ?? "")
+                    .font(.system(size: 24, weight: .bold))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+            }
+            .padding(20)
+            .background(
+                LinearGradient(
+                    colors: [Color.black.opacity(0.8), Color.black.opacity(0)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+
+            Spacer()
+
+            // Indicadores de eixo gigantes (centro)
+            HStack(spacing: 40) {
+                // Eixo Alvo
+                VStack(spacing: 4) {
+                    Text("ALVO")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(.yellow.opacity(0.8))
+                    Text("\(Int(targetAxis))°")
+                        .font(.system(size: 56, weight: .bold, design: .rounded))
+                        .foregroundColor(.yellow)
+                }
+
+                // Seta de direção
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 36, weight: .bold))
+                    .foregroundColor(.white.opacity(0.5))
+
+                // Eixo Atual
+                VStack(spacing: 4) {
+                    Text(axisLocked ? "TRAVADO" : "ATUAL")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(axisLocked ? .orange.opacity(0.8) : .cyan.opacity(0.8))
+                    Text("\(Int(displayAxis))°")
+                        .font(.system(size: 72, weight: .bold, design: .rounded))
+                        .foregroundColor(axisLocked ? .orange : .cyan)
+                }
+                .padding(.horizontal, 30)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.black.opacity(0.6))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(axisLocked ? Color.orange : Color.cyan, lineWidth: 4)
+                        )
+                )
+
+                // Desvio
+                VStack(spacing: 4) {
+                    Text("DESVIO")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(isAligned ? .green.opacity(0.8) : .red.opacity(0.8))
+                    Text("\(Int(abs(displayAxis - targetAxis)))°")
+                        .font(.system(size: 56, weight: .bold, design: .rounded))
+                        .foregroundColor(isAligned ? .green : .red)
+                }
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 24)
+            .background(Color.black.opacity(0.7))
+            .cornerRadius(20)
+
+            Spacer()
+
+            // Ciclotorção (canto direito)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("CICLOTORÇÃO")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white.opacity(0.6))
+                Text(String(format: "%+.1f°", detectedCyclotorsion))
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundColor(abs(detectedCyclotorsion) < 3 ? .green : .orange)
+            }
+            .padding(20)
+            .background(
+                LinearGradient(
+                    colors: [Color.black.opacity(0), Color.black.opacity(0.8)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+        }
+    }
+
+    // MARK: - TV Mode Bottom Bar
+    private var tvModeBottomBar: some View {
+        HStack {
+            Spacer()
+
+            // Status de alinhamento GRANDE
+            HStack(spacing: 20) {
+                // Ícone de status
+                ZStack {
+                    Circle()
+                        .fill(isAligned ? Color.green : Color.orange)
+                        .frame(width: 40, height: 40)
+
+                    if isAligned {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.white)
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
+
+                Text(isAligned ? "ALINHADO" : "AJUSTAR EIXO")
+                    .font(.system(size: 36, weight: .bold))
+                    .foregroundColor(isAligned ? .green : .orange)
+
+                if axisLocked {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 24))
+                        Text("TRAVADO")
+                            .font(.system(size: 24, weight: .bold))
+                    }
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(Color.orange.opacity(0.2))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.orange, lineWidth: 2)
+                    )
+                }
+            }
+            .padding(.horizontal, 40)
+            .padding(.vertical, 20)
+            .background(Color.black.opacity(0.7))
+            .cornerRadius(20)
+
+            Spacer()
+        }
+        .padding(.bottom, 30)
+    }
+
+    // MARK: - TV Mode Control Buttons
+    private var tvModeControlButtons: some View {
+        VStack {
+            HStack {
+                // Botão Sair (canto superior esquerdo)
+                Button {
+                    dismiss()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20, weight: .bold))
+                        Text("SAIR")
+                            .font(.system(size: 18, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                    .background(Color.red.opacity(0.8))
+                    .cornerRadius(12)
+                }
+                .padding(20)
+
+                Spacer()
+
+                // Toggle Modo TV (canto superior direito)
+                Button {
+                    withAnimation(.spring()) {
+                        isTVMode = false
+                    }
+                    HapticFeedback.light()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "iphone")
+                            .font(.system(size: 20))
+                        Text("MODO IPHONE")
+                            .font(.system(size: 16, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.purple.opacity(0.8))
+                    .cornerRadius(10)
+                }
+                .padding(20)
+            }
+
+            Spacer()
+
+            // Controles inferiores
+            HStack {
+                // Ajustes de eixo (esquerda)
+                HStack(spacing: 16) {
+                    TVModeAdjustButton(label: "-5°", size: .medium) {
+                        adjustAxis(by: -5)
+                    }
+                    TVModeAdjustButton(label: "-1°", size: .large) {
+                        adjustAxis(by: -1)
+                    }
+                    TVModeAdjustButton(label: "+1°", size: .large) {
+                        adjustAxis(by: 1)
+                    }
+                    TVModeAdjustButton(label: "+5°", size: .medium) {
+                        adjustAxis(by: 5)
+                    }
+                }
+                .padding(20)
+
+                Spacer()
+
+                // Botões de ação (direita)
+                HStack(spacing: 16) {
+                    // Travar
+                    Button {
+                        withAnimation(.spring()) {
+                            axisLocked.toggle()
+                        }
+                        if axisLocked {
+                            correctedAxis = displayAxis
+                            HapticFeedback.success()
+                        }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: axisLocked ? "lock.fill" : "lock.open")
+                                .font(.system(size: 24))
+                            Text(axisLocked ? "DESTRAVA" : "TRAVAR")
+                                .font(.system(size: 20, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        .background(axisLocked ? Color.orange : Color.blue)
+                        .cornerRadius(14)
+                    }
+
+                    // Concluir
+                    Button {
+                        showingCompletionAlert = true
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 28))
+                            Text("CONCLUIR")
+                                .font(.system(size: 22, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 18)
+                        .background(Color.green)
+                        .cornerRadius(16)
+                    }
+                }
+                .padding(20)
+            }
+        }
+    }
+
+    // MARK: - TV Mode Surgical Overlay (Maximizado)
+    private func tvModeSurgicalOverlay(geometry: GeometryProxy) -> some View {
+        let overlaySize = min(geometry.size.width, geometry.size.height) * 0.90
+        let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+        let radius = overlaySize / 2
+
+        return ZStack {
+            // Círculo de referência (limbo) - linha mais grossa
+            Circle()
+                .stroke(Color.green.opacity(0.7), lineWidth: 5)
+                .frame(width: radius * 2, height: radius * 2)
+                .position(center)
+
+            // Linha do eixo alvo (tracejada amarela) - mais visível
+            AxisLine(
+                center: center,
+                length: radius * 2.5,
+                angle: targetAxis,
+                color: .yellow.opacity(0.8),
+                isDashed: true,
+                lineWidth: 4
+            )
+
+            // Linha do eixo atual (sólida) - MUITO mais grossa para TV
+            AxisLine(
+                center: center,
+                length: radius * 2.5,
+                angle: displayAxis,
+                color: axisLocked ? .orange : (isAligned ? .green : .cyan),
+                isDashed: false,
+                lineWidth: 8
+            )
+
+            // Marcadores de graus grandes ao redor
+            ForEach([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330], id: \.self) { angle in
+                TVModeDegreeMarker(
+                    center: center,
+                    radius: radius + 45,
+                    angle: Double(angle),
+                    isHighlighted: abs(Double(angle) - displayAxis.normalizedAngle) < 10 ||
+                                  abs(Double(angle) - targetAxis) < 10,
+                    isMajor: angle % 90 == 0
+                )
+            }
+
+            // Indicador de alinhamento grande no centro
+            if isAligned && !axisLocked {
+                VStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 100))
+                        .foregroundColor(.green)
+                        .shadow(color: .green.opacity(0.5), radius: 20)
+
+                    Text("ALINHADO")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 10)
+                        .background(Color.black.opacity(0.7))
+                        .cornerRadius(12)
+                }
+                .position(center)
+            }
+
+            // Marcadores de eixo nas pontas das linhas
+            TVModeAxisLabel(
+                center: center,
+                radius: radius + 80,
+                angle: displayAxis,
+                text: "\(Int(displayAxis))°",
+                color: axisLocked ? .orange : .cyan,
+                isLocked: axisLocked
+            )
+
+            TVModeAxisLabel(
+                center: center,
+                radius: radius + 80,
+                angle: targetAxis,
+                text: "ALVO",
+                color: .yellow,
+                isLocked: false
+            )
         }
     }
 
@@ -253,6 +648,29 @@ struct SurgicalGuideView: View {
     // MARK: - Right Panel (Landscape)
     private var rightPanel: some View {
         VStack(spacing: 12) {
+            // Toggle Modo TV
+            Button {
+                withAnimation(.spring()) {
+                    isTVMode = true
+                }
+                HapticFeedback.light()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "tv")
+                        .font(.system(size: 14))
+                    Text("MODO TV")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.purple)
+                .cornerRadius(8)
+            }
+
+            Divider().background(Color.white.opacity(0.3))
+
             // Ajuste de eixo
             Text("AJUSTE FINO")
                 .font(.caption2)
@@ -816,6 +1234,114 @@ struct AdjustmentButton: View {
                 .foregroundColor(.primary)
                 .cornerRadius(10)
         }
+    }
+}
+
+// MARK: - TV Mode Components (Alto contraste, elementos grandes)
+
+struct TVModeAdjustButton: View {
+    let label: String
+    let size: TVButtonSize
+    let action: () -> Void
+
+    enum TVButtonSize {
+        case medium, large
+
+        var width: CGFloat {
+            switch self {
+            case .medium: return 70
+            case .large: return 90
+            }
+        }
+
+        var height: CGFloat {
+            switch self {
+            case .medium: return 50
+            case .large: return 60
+            }
+        }
+
+        var fontSize: CGFloat {
+            switch self {
+            case .medium: return 20
+            case .large: return 26
+            }
+        }
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: size.fontSize, weight: .bold))
+                .frame(width: size.width, height: size.height)
+                .background(Color.white.opacity(0.25))
+                .foregroundColor(.white)
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white.opacity(0.4), lineWidth: 2)
+                )
+        }
+    }
+}
+
+struct TVModeDegreeMarker: View {
+    let center: CGPoint
+    let radius: CGFloat
+    let angle: Double
+    let isHighlighted: Bool
+    let isMajor: Bool
+
+    var body: some View {
+        let radians = (90 - angle) * .pi / 180
+        let x = center.x + radius * cos(radians)
+        let y = center.y - radius * sin(radians)
+
+        Text("\(Int(angle))°")
+            .font(.system(size: isMajor ? 24 : 18, weight: isMajor ? .bold : .semibold))
+            .foregroundColor(isHighlighted ? .cyan : (isMajor ? .white.opacity(0.9) : .white.opacity(0.5)))
+            .shadow(color: .black.opacity(0.5), radius: 2)
+            .position(x: x, y: y)
+    }
+}
+
+struct TVModeAxisLabel: View {
+    let center: CGPoint
+    let radius: CGFloat
+    let angle: Double
+    let text: String
+    let color: Color
+    let isLocked: Bool
+
+    var body: some View {
+        let radians = (90 - angle) * .pi / 180
+        let x = center.x + radius * cos(radians)
+        let y = center.y - radius * sin(radians)
+
+        HStack(spacing: 6) {
+            if isLocked {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 18, weight: .bold))
+            }
+            Text(text)
+                .font(.system(size: 24, weight: .bold))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(color.opacity(0.9))
+        .foregroundColor(.white)
+        .cornerRadius(12)
+        .shadow(color: color.opacity(0.5), radius: 8)
+        .position(x: x, y: y)
+    }
+}
+
+// MARK: - Angle Normalization Extension
+extension Double {
+    var normalizedAngle: Double {
+        var angle = self.truncatingRemainder(dividingBy: 360)
+        if angle < 0 { angle += 360 }
+        return angle
     }
 }
 
