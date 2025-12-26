@@ -69,49 +69,54 @@ struct ReferenceCaptureView: View {
             Spacer()
 
             // Ícone
-            Image(systemName: "exclamationmark.triangle.fill")
+            Image(systemName: "camera.viewfinder")
                 .font(.system(size: 50))
-                .foregroundColor(.orange)
+                .foregroundColor(.blue)
 
-            Text("INSTRUÇÕES IMPORTANTES")
+            Text("ESCOLHA O MODO DE CAPTURA")
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
 
-            // Lista de instruções
-            VStack(alignment: .leading, spacing: 16) {
-                InstructionRow(icon: "person.fill", text: "Paciente deve estar SENTADO")
-                InstructionRow(icon: "face.smiling", text: "Cabeça reta, olhando para frente")
-                InstructionRow(icon: "iphone.gen3", text: "Alinhe o iPhone horizontalmente")
-                InstructionRow(icon: "lightbulb.fill", text: "Use iluminação adequada para visualizar vasos")
-            }
-            .padding()
-            .background(Color.white.opacity(0.1))
-            .cornerRadius(16)
-            .padding(.horizontal)
-
-            Spacer()
-
-            // Botão iniciar
-            Button {
+            // Opção 1: Consultório (câmera frontal)
+            CaptureOptionCard(
+                icon: "person.fill",
+                title: "CONSULTÓRIO",
+                subtitle: "Câmera Frontal",
+                description: "Paciente sentado, cabeça reta\nUsa giroscópio para nivelar",
+                color: .blue
+            ) {
                 withAnimation {
                     showInstructions = false
                 }
                 startCamera()
-            } label: {
-                HStack {
-                    Image(systemName: "camera.fill")
-                    Text("INICIAR CAPTURA")
-                        .fontWeight(.semibold)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(12)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 40)
+
+            // Opção 2: MicroRec (câmera traseira, landscape)
+            CaptureOptionCard(
+                icon: "scope",
+                title: "MICROREC",
+                subtitle: "Câmera Traseira",
+                description: "Via microscópio cirúrgico\nModo landscape otimizado",
+                color: .green
+            ) {
+                // Navegar para captura via MicroRec
+                appState.navigationPath.append(AppRoute.microRecCapture)
+            }
+
+            Spacer()
+
+            // Dica
+            HStack {
+                Image(systemName: "info.circle")
+                    .foregroundColor(.white.opacity(0.6))
+                Text("Escolha Consultório para captura padrão ou MicroRec se já estiver no centro cirúrgico")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.6))
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 30)
         }
     }
 
@@ -361,6 +366,69 @@ struct CameraPreviewView: UIViewRepresentable {
                 uiView.layer.addSublayer(previewLayer)
             }
         }
+    }
+}
+
+// MARK: - Capture Option Card
+struct CaptureOptionCard: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let description: String
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                // Ícone
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(color.opacity(0.2))
+                        .frame(width: 60, height: 60)
+
+                    Image(systemName: icon)
+                        .font(.system(size: 26))
+                        .foregroundColor(color)
+                }
+
+                // Textos
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(title)
+                            .font(.headline)
+                            .foregroundColor(.white)
+
+                        Text(subtitle)
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(color.opacity(0.3))
+                            .foregroundColor(color)
+                            .cornerRadius(4)
+                    }
+
+                    Text(description)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            .padding()
+            .background(Color.white.opacity(0.1))
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(color.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.horizontal)
     }
 }
 

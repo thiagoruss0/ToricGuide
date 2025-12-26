@@ -31,6 +31,8 @@ struct ContentView: View {
                         SavedCasesView()
                     case .settings:
                         SettingsView()
+                    case .microRecCapture:
+                        MicroRecCaptureView()
                     }
                 }
         }
@@ -47,6 +49,7 @@ enum AppRoute: Hashable {
     case surgicalGuide
     case savedCases
     case settings
+    case microRecCapture
 }
 
 #Preview {
