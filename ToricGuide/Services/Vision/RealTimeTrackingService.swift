@@ -4,6 +4,7 @@
 //
 //  Serviço de rastreamento em tempo real durante a cirurgia
 //  Combina detecção de landmarks, matching e correção de ciclotorção
+//  Integrado com sistema de calibração do microscópio
 //
 
 import Foundation
@@ -36,18 +37,26 @@ class RealTimeTrackingService: NSObject, ObservableObject {
     /// Está alinhado (dentro de 5°)
     @Published var isAligned: Bool = false
 
+    /// Calibração ativa
+    @Published var calibrationApplied: Bool = false
+
+    /// Confiança da detecção de vasos
+    @Published var vesselDetectionConfidence: Double = 0
+
     // MARK: - Configuration
 
     struct Config {
         static let acceptableDeviation: Double = 5.0 // graus
         static let processingInterval: TimeInterval = 0.1 // 10 FPS para tracking
         static let smoothingFactor: Double = 0.3 // Suavização da ciclotorção
+        static let minConfidenceForTracking: Double = 0.5
     }
 
     // MARK: - Private Properties
 
     private let eyeDetectionService = EyeDetectionService()
     private let matchingService = LandmarkMatchingService()
+    private let calibrationService = MicroscopeCalibrationService.shared
 
     private var referenceLandmarks: EyeLandmarks?
     private var referenceImage: UIImage?
@@ -217,18 +226,46 @@ class RealTimeTrackingService: NSObject, ObservableObject {
         smoothedCyclotorsion = smoothedCyclotorsion * (1 - Config.smoothingFactor) +
                                avgCyclotorsion * Config.smoothingFactor
 
+        // Aplicar correção de calibração se disponível
+        var calibratedCyclotorsion = smoothedCyclotorsion
+        if calibrationService.isCalibrated,
+           let calibration = calibrationService.calibrationData {
+            // Aplicar offset de rotação do microscópio
+            calibratedCyclotorsion -= calibration.rotationOffset
+            calibrationApplied = true
+        } else {
+            calibrationApplied = false
+        }
+
         // Atualizar published values
-        detectedCyclotorsion = smoothedCyclotorsion
+        detectedCyclotorsion = calibratedCyclotorsion
 
         // Calcular eixo corrigido
         // Para OD: ciclotorção positiva = rotação horária = eixo aparece menor
         // Para OE: oposto
-        let cyclotorsionCorrection = eye == .right ? -smoothedCyclotorsion : smoothedCyclotorsion
+        let cyclotorsionCorrection = eye == .right ? -calibratedCyclotorsion : calibratedCyclotorsion
         correctedAxis = normalizeAxis(targetAxis + cyclotorsionCorrection)
 
         // Calcular desvio (para exibição no overlay)
-        axisDeviation = abs(smoothedCyclotorsion)
+        axisDeviation = abs(calibratedCyclotorsion)
         isAligned = axisDeviation < Config.acceptableDeviation
+    }
+
+    // MARK: - Calibration Methods
+
+    /// Verifica se calibração está aplicada
+    func isCalibrationActive() -> Bool {
+        return calibrationService.isCalibrated
+    }
+
+    /// Retorna qualidade da calibração
+    func getCalibrationQuality() -> MicroscopeCalibrationService.CalibrationQuality {
+        return calibrationService.calibrationQuality
+    }
+
+    /// Aplica calibração rápida de rotação
+    func applyQuickCalibration(rotationOffset: Double) {
+        calibrationService.quickCalibrate(rotationOffset: rotationOffset, zoomLevel: 1.0)
     }
 
     // MARK: - Helpers

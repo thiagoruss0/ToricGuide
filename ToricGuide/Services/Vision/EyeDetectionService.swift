@@ -4,6 +4,7 @@
 //
 //  Serviço de detecção e rastreamento do olho usando Vision Framework
 //  Detecta limbo, pupila e vasos limbares para matching
+//  Integrado com LimbalVesselDetector para detecção real de vasos
 //
 
 import Vision
@@ -24,8 +25,13 @@ class EyeDetectionService: ObservableObject {
     @Published var detectedVessels: [DetectedVessel] = []
     @Published var processingTime: TimeInterval = 0
 
+    @Published var useRealDetection = true
+    @Published var detectionConfidence: Double = 0
+
     // MARK: - Private Properties
     private let ciContext = CIContext()
+    private let vesselDetector = LimbalVesselDetector()
+    private let calibrationService = MicroscopeCalibrationService.shared
 
     // MARK: - Detecção Principal
 
@@ -33,8 +39,95 @@ class EyeDetectionService: ObservableObject {
     func processImage(_ image: UIImage) async -> EyeDetectionResult? {
         let startTime = Date()
 
-        guard let cgImage = image.cgImage else { return nil }
+        // Aplicar calibração se disponível
+        let calibratedImage = calibrationService.isCalibrated ?
+            calibrationService.transformImage(image) ?? image : image
 
+        guard let cgImage = calibratedImage.cgImage else { return nil }
+
+        // Escolher método de detecção
+        if useRealDetection {
+            return await processImageWithRealDetection(calibratedImage, startTime: startTime)
+        } else {
+            return await processImageWithSimulatedDetection(calibratedImage, cgImage: cgImage, startTime: startTime)
+        }
+    }
+
+    /// Processa imagem usando detecção real de vasos com Vision Framework
+    private func processImageWithRealDetection(_ image: UIImage, startTime: Date) async -> EyeDetectionResult? {
+        return await withCheckedContinuation { continuation in
+            vesselDetector.detectVessels(in: image) { [weak self] result in
+                guard let self = self, let result = result else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                let processingTime = Date().timeIntervalSince(startTime)
+
+                // Converter vasos detectados para formato interno
+                let vessels = result.vessels.map { vessel in
+                    DetectedVessel(
+                        id: vessel.id,
+                        position: CGPoint(
+                            x: vessel.midpoint.x * image.size.width,
+                            y: vessel.midpoint.y * image.size.height
+                        ),
+                        angle: vessel.angle,
+                        length: vessel.length * min(image.size.width, image.size.height),
+                        confidence: vessel.confidence
+                    )
+                }
+
+                // Criar resultados de limbo e pupila
+                let limbusResult = CircleDetectionResult(
+                    center: CGPoint(
+                        x: result.limbusCenter.x * image.size.width,
+                        y: result.limbusCenter.y * image.size.height
+                    ),
+                    radius: result.limbusRadius * min(image.size.width, image.size.height),
+                    confidence: result.vessels.isEmpty ? 0.5 : 0.8
+                )
+
+                // Estimar pupila como fração do limbo
+                let pupilResult = CircleDetectionResult(
+                    center: limbusResult.center,
+                    radius: limbusResult.radius * 0.35,
+                    confidence: 0.7
+                )
+
+                DispatchQueue.main.async {
+                    self.limbusDetected = true
+                    self.limbusCenter = limbusResult.center
+                    self.limbusRadius = limbusResult.radius
+
+                    self.pupilDetected = true
+                    self.pupilCenter = pupilResult.center
+                    self.pupilRadius = pupilResult.radius
+
+                    self.detectedVessels = vessels
+                    self.processingTime = processingTime
+                    self.detectionConfidence = vessels.reduce(0) { $0 + $1.confidence } /
+                        max(Double(vessels.count), 1)
+                }
+
+                let eyeResult = EyeDetectionResult(
+                    limbus: limbusResult,
+                    pupil: pupilResult,
+                    vessels: vessels,
+                    quality: self.calculateQuality(limbusResult, pupilResult, vessels)
+                )
+
+                continuation.resume(returning: eyeResult)
+            }
+        }
+    }
+
+    /// Processa imagem usando detecção simulada (fallback)
+    private func processImageWithSimulatedDetection(
+        _ image: UIImage,
+        cgImage: CGImage,
+        startTime: Date
+    ) async -> EyeDetectionResult? {
         // 1. Detectar face e olhos usando Vision
         let faceRequest = VNDetectFaceLandmarksRequest()
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
@@ -43,16 +136,15 @@ class EyeDetectionService: ObservableObject {
             try handler.perform([faceRequest])
         } catch {
             print("Erro na detecção facial: \(error)")
-            return nil
         }
 
-        guard let faceObservation = faceRequest.results?.first,
-              let landmarks = faceObservation.landmarks else {
-            return nil
+        // 2. Obter região do olho (se detectou face)
+        let eyeRegion: UIImage?
+        if let faceObservation = faceRequest.results?.first {
+            eyeRegion = extractEyeRegion(from: faceObservation, image: image)
+        } else {
+            eyeRegion = nil
         }
-
-        // 2. Obter região do olho
-        let eyeRegion = extractEyeRegion(from: faceObservation, image: image)
 
         // 3. Detectar limbo usando Hough Circle Transform (via Core Image)
         let limbusResult = detectLimbus(in: eyeRegion ?? image)
@@ -60,7 +152,7 @@ class EyeDetectionService: ObservableObject {
         // 4. Detectar pupila
         let pupilResult = detectPupil(in: eyeRegion ?? image)
 
-        // 5. Detectar vasos limbares
+        // 5. Detectar vasos limbares (simulado)
         let vessels = detectLimbalVessels(in: eyeRegion ?? image)
 
         let processingTime = Date().timeIntervalSince(startTime)
@@ -87,6 +179,41 @@ class EyeDetectionService: ObservableObject {
             pupil: pupilResult,
             vessels: vessels,
             quality: calculateQuality(limbusResult, pupilResult, vessels)
+        )
+    }
+
+    /// Processa um pixel buffer (para câmera em tempo real)
+    func processPixelBuffer(_ pixelBuffer: CVPixelBuffer) async -> EyeDetectionResult? {
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
+            return nil
+        }
+        let uiImage = UIImage(cgImage: cgImage)
+        return await processImage(uiImage)
+    }
+
+    /// Converte resultado de detecção para EyeLandmarks
+    func convertToLandmarks(from result: EyeDetectionResult) -> EyeLandmarks? {
+        guard let limbus = result.limbus else { return nil }
+
+        let vesselDescriptors = result.vessels.map { vessel in
+            VesselDescriptor(
+                angle: vessel.angle,
+                normalizedPosition: CGPoint(
+                    x: vessel.position.x / (limbus.center.x * 2),
+                    y: vessel.position.y / (limbus.center.y * 2)
+                ),
+                length: vessel.length / limbus.radius,
+                thickness: 0.02
+            )
+        }
+
+        return EyeLandmarks(
+            pupilCenter: result.pupil?.center ?? limbus.center,
+            limbusRadius: limbus.radius,
+            limbalVessels: vesselDescriptors,
+            irisFeatures: [],
+            timestamp: Date()
         )
     }
 

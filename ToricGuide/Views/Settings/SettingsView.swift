@@ -124,30 +124,191 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Calibração MicroRec
+// MARK: - Calibração MicroRec Avançada
 struct MicroRecCalibrationView: View {
     @EnvironmentObject var appState: AppState
+    @StateObject private var calibrationService = MicroscopeCalibrationService.shared
+    @State private var selectedTab = 0
     @State private var step = 0
+    @State private var rotationOffset: Double = 0
+    @State private var showingResetAlert = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        VStack(spacing: 0) {
+            // Tab selector
+            Picker("Modo", selection: $selectedTab) {
+                Text("Rápida").tag(0)
+                Text("Avançada").tag(1)
+                Text("Presets").tag(2)
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            .padding()
+
+            TabView(selection: $selectedTab) {
+                // Tab 0: Calibração Rápida
+                quickCalibrationView
+                    .tag(0)
+
+                // Tab 1: Calibração Avançada
+                advancedCalibrationView
+                    .tag(1)
+
+                // Tab 2: Presets
+                presetsView
+                    .tag(2)
+            }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+        }
+        .navigationTitle("Calibração MicroRec")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if calibrationService.isCalibrated {
+                    Button("Resetar") {
+                        showingResetAlert = true
+                    }
+                    .foregroundColor(.red)
+                }
+            }
+        }
+        .alert("Resetar Calibração?", isPresented: $showingResetAlert) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Resetar", role: .destructive) {
+                calibrationService.resetCalibration()
+                appState.microRecCalibrated = false
+            }
+        } message: {
+            Text("Isso removerá todas as configurações de calibração.")
+        }
+        .onAppear {
+            if let data = calibrationService.calibrationData {
+                rotationOffset = data.rotationOffset
+            }
+        }
+    }
+
+    // MARK: - Quick Calibration
+    private var quickCalibrationView: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Status
+                calibrationStatusCard
+
+                // Ajuste de rotação
+                VStack(spacing: 16) {
+                    Text("Ajuste de Rotação")
+                        .font(.headline)
+
+                    Text("Ajuste o offset de rotação do microscópio para corrigir o alinhamento da imagem.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+
+                    // Slider de rotação
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("-10°")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(String(format: "%.1f°", rotationOffset))
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.blue)
+                            Spacer()
+                            Text("+10°")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Slider(value: $rotationOffset, in: -10...10, step: 0.5)
+                            .accentColor(.blue)
+
+                        // Botões de ajuste fino
+                        HStack(spacing: 20) {
+                            Button {
+                                rotationOffset = max(-10, rotationOffset - 0.5)
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.title2)
+                            }
+
+                            Button {
+                                rotationOffset = 0
+                            } label: {
+                                Text("0°")
+                                    .font(.caption)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color(.systemGray5))
+                                    .cornerRadius(8)
+                            }
+
+                            Button {
+                                rotationOffset = min(10, rotationOffset + 0.5)
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                            }
+                        }
+                        .foregroundColor(.blue)
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal)
+
+                // Botão de aplicar
+                Button {
+                    calibrationService.quickCalibrate(
+                        rotationOffset: rotationOffset,
+                        zoomLevel: appState.cameraZoomLevel
+                    )
+                    appState.microRecCalibrated = true
+                    dismiss()
+                } label: {
+                    Label("Aplicar Calibração Rápida", systemImage: "checkmark.circle.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
+                .padding(.horizontal)
+            }
+            .padding(.vertical)
+        }
+    }
+
+    // MARK: - Advanced Calibration
+    private var advancedCalibrationView: some View {
         VStack(spacing: 24) {
             // Ícone
             Image(systemName: "camera.metering.matrix")
                 .font(.system(size: 60))
                 .foregroundColor(.blue)
-                .padding(.top, 40)
+                .padding(.top, 20)
 
-            Text("Calibração do MicroRec")
+            Text("Calibração Completa")
                 .font(.title2)
                 .fontWeight(.bold)
+
+            Text("Siga os passos para calibrar distorção, escala e rotação.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
 
             // Instruções
             VStack(alignment: .leading, spacing: 16) {
                 CalibrationStep(number: 1, text: "Conecte o MicroRec ao microscópio Zeiss", isComplete: step >= 1)
                 CalibrationStep(number: 2, text: "Posicione o iPhone no adaptador", isComplete: step >= 2)
                 CalibrationStep(number: 3, text: "Foque em um alvo de calibração", isComplete: step >= 3)
-                CalibrationStep(number: 4, text: "Ajuste o zoom óptico", isComplete: step >= 4)
+                CalibrationStep(number: 4, text: "Capture imagem de referência", isComplete: step >= 4)
+                CalibrationStep(number: 5, text: "Marque pontos de calibração", isComplete: step >= 5)
             }
             .padding()
             .background(Color(.systemGray6))
@@ -158,14 +319,19 @@ struct MicroRecCalibrationView: View {
 
             // Botão
             Button {
-                if step < 4 {
+                if step < 5 {
                     step += 1
                 } else {
+                    // Calibração completa simulada
+                    calibrationService.quickCalibrate(
+                        rotationOffset: 0,
+                        zoomLevel: appState.cameraZoomLevel
+                    )
                     appState.microRecCalibrated = true
                     dismiss()
                 }
             } label: {
-                Text(step < 4 ? "Próximo Passo" : "Concluir Calibração")
+                Text(step < 5 ? "Próximo Passo" : "Concluir Calibração")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -175,8 +341,144 @@ struct MicroRecCalibrationView: View {
             }
             .padding()
         }
-        .navigationTitle("Calibração")
-        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Presets View
+    private var presetsView: some View {
+        List {
+            Section {
+                ForEach(MicroscopeCalibrationService.presets) { preset in
+                    Button {
+                        calibrationService.applyPreset(preset)
+                        appState.microRecCalibrated = true
+                        dismiss()
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(preset.name)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text(preset.description)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            } header: {
+                Text("Perfis Pré-configurados")
+            } footer: {
+                Text("Selecione um preset para aplicar configurações otimizadas para seu equipamento.")
+            }
+
+            Section {
+                HStack {
+                    Text("Microscópio")
+                    Spacer()
+                    Text("Zeiss Opmi Lumera I")
+                        .foregroundColor(.secondary)
+                }
+                HStack {
+                    Text("Adaptador")
+                    Spacer()
+                    Text("MicroRec (Custom Surgical)")
+                        .foregroundColor(.secondary)
+                }
+            } header: {
+                Text("Equipamento Suportado")
+            }
+        }
+    }
+
+    // MARK: - Status Card
+    private var calibrationStatusCard: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: calibrationService.isCalibrated ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                    .font(.title2)
+                    .foregroundColor(calibrationService.isCalibrated ? .green : .orange)
+
+                VStack(alignment: .leading) {
+                    Text(calibrationService.isCalibrated ? "Calibrado" : "Não Calibrado")
+                        .font(.headline)
+                    if let date = calibrationService.lastCalibrationDate {
+                        Text("Última: \(formatDate(date))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                Spacer()
+
+                if calibrationService.isCalibrated {
+                    VStack(alignment: .trailing) {
+                        Text("Qualidade")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(calibrationService.calibrationQuality.rawValue)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(qualityColor)
+                    }
+                }
+            }
+
+            if calibrationService.isCalibrated,
+               let data = calibrationService.calibrationData {
+                Divider()
+                HStack {
+                    VStack {
+                        Text("Rotação")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(String(format: "%.1f°", data.rotationOffset))
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                    Spacer()
+                    VStack {
+                        Text("Escala")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(String(format: "%.2fx", data.scaleFactor))
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                    Spacer()
+                    VStack {
+                        Text("Zoom")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(String(format: "%.1fx", data.zoomLevel))
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+
+    private var qualityColor: Color {
+        switch calibrationService.calibrationQuality {
+        case .excellent: return .blue
+        case .good: return .green
+        case .acceptable: return .orange
+        case .poor: return .red
+        case .unknown: return .gray
+        }
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd/MM/yy HH:mm"
+        return formatter.string(from: date)
     }
 }
 
